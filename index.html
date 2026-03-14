@@ -1,467 +1,516 @@
 <!DOCTYPE html>
 <html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HAM Medication Dashboard</title>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- PapaParse -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Kanit', 'sans-serif'],
-                    },
-                    colors: {
-                        dark: {
-                            900: '#121212',
-                            800: '#1e1e1e',
-                            700: '#2d2d2d',
-                        },
-                        accent: {
-                            DEFAULT: '#00d2ff',
-                            hover: '#00b0d6'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
 
-    <style>
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HAM Medication Dashboard</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- PapaParse -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Kanit', 'sans-serif'],
+          },
+          colors: {
+            dark: {
+              900: '#121212',
+              800: '#1e1e1e',
+              700: '#2d2d2d',
+            },
+            accent: {
+              DEFAULT: '#00d2ff',
+              hover: '#00b0d6'
+            }
+          }
         }
-        ::-webkit-scrollbar-track {
-            background: #121212; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #333; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555; 
-        }
-    </style>
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #121212;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+  </style>
 </head>
+
 <body class="bg-dark-900 text-gray-200 font-sans min-h-screen p-4 md:p-8 selection:bg-accent selection:text-black">
 
-    <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-gray-800 pb-6">
-            <div>
-                <h1 class="text-3xl md:text-4xl font-bold text-white flex items-center gap-3">
-                    <span class="text-4xl">💊</span> HAM Dashboard
-                </h1>
-                <p class="text-gray-400 mt-2 text-sm md:text-base font-light">ระบบติดตามตัวชี้วัดยาความเสี่ยงสูง (High-Alert Medication)</p>
-            </div>
-            <button onclick="initDashboard()" 
-                class="bg-accent hover:bg-accent-hover text-black font-bold py-2 px-6 rounded-full shadow-lg shadow-cyan-500/20 transition duration-300 flex items-center gap-2 active:scale-95">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh Data
-            </button>
-        </div>
-
-        <!-- Loading State -->
-        <div id="loading" class="flex flex-col items-center justify-center py-20 min-h-[400px]">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-accent mx-auto mb-4"></div>
-            <p class="text-xl text-accent animate-pulse">กำลังโหลดข้อมูล...</p>
-        </div>
-
-        <!-- Dashboard Content -->
-        <div id="dashboard" class="hidden space-y-8 animate-fade-in">
-            
-            <!-- Key Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Stat 1 -->
-                <div class="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 flex flex-col items-center justify-center transform hover:scale-[1.01] transition duration-300 group">
-                    <div id="total-respondents" class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 group-hover:scale-110 transition-transform">0</div>
-                    <div class="text-gray-400 font-light text-lg">ผู้ตอบแบบสอบถาม (คน)</div>
-                </div>
-                <!-- Stat 2 -->
-                <div class="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 flex flex-col items-center justify-center transform hover:scale-[1.01] transition duration-300 group">
-                    <div id="overall-avg" class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 mb-2 group-hover:scale-110 transition-transform">0.00</div>
-                    <div class="text-gray-400 font-light text-lg">คะแนนเฉลี่ยรวม (เต็ม 5)</div>
-                </div>
-            </div>
-
-            <!-- Main Charts Row -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Bar Chart (Takes 2 columns on large screens) -->
-                <div class="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 lg:col-span-2">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-xl font-semibold text-white flex items-center gap-2">
-                            <span class="w-2 h-6 bg-accent rounded"></span>
-                            คะแนนเฉลี่ยรายข้อ (14 ข้อ)
-                        </h3>
-                    </div>
-                    <div class="relative h-[400px] w-full">
-                        <canvas id="avgChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Radar Chart -->
-                <div class="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700">
-                    <div class="flex items-center justify-center mb-6">
-                         <h3 class="text-xl font-semibold text-white flex items-center gap-2">
-                            <span class="w-2 h-6 bg-pink-500 rounded"></span>
-                            สรุปภาพรวมรายด้าน
-                        </h3>
-                    </div>
-                    <div class="relative h-[300px] lg:h-[400px] w-full flex items-center justify-center">
-                        <canvas id="aspectChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Detailed Breakdown Section -->
-            <div class="pt-8 border-t border-dark-700">
-                <h2 class="text-2xl font-bold text-white mb-8 flex items-center gap-3">
-                    <span class="bg-dark-700 p-2 rounded-lg">📋</span>
-                    รายละเอียดรายข้อ
-                    <span class="text-sm font-normal text-gray-500 ml-2">(การกระจายของคำตอบ)</span>
-                </h2>
-                <div id="questions-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                    <!-- Cards will be injected here via JS -->
-                </div>
-            </div>
-
-        </div>
-        
-        <!-- Footer -->
-        <div class="mt-16 text-center text-gray-600 text-sm py-8 border-t border-dark-800">
-            &copy; 2026 HAM Dashboard | Powered by Google Sheets & Tailwind CSS
-        </div>
+  <div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-gray-800 pb-6">
+      <div>
+        <h1 class="text-3xl md:text-4xl font-bold text-white flex items-center gap-3">
+          HAM Dashboard
+        </h1>
+        <p class="text-gray-400 mt-2 text-sm md:text-base font-light">
+          ระบบติดตามตัวชี้วัดยาความเสี่ยงสูง (High-Alert
+          Medication)
+        </p>
+      </div>
+      <button onclick="initDashboard()"
+        class="bg-accent hover:bg-accent-hover text-black font-bold py-2 px-6 rounded-full shadow-lg shadow-cyan-500/20 transition duration-300 flex items-center gap-2 active:scale-95">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Refresh Data
+      </button>
     </div>
 
-    <script>
-        // Configuration
-        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRtr1YbjpJwwlNBnB-a2kTz8rjJ8xYBpVj-WPxJ8gR1oy669Bw2CbG2sYTfX0efRm6mtkWpk-IXrF_9/pub?output=csv";
-        
-        // Data Configuration
-        const QUESTION_COL_START_INDEX = 5; 
-        const QUESTION_COUNT = 14;
+    <!-- Loading State -->
+    <div id="loading" class="flex flex-col items-center justify-center py-20 min-h-[400px]">
+      <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-accent mx-auto mb-4"></div>
+      <p class="text-xl text-accent animate-pulse">กำลังโหลดข้อมูล...</p>
+    </div>
 
-        // Labels
-        const QUESTION_LABELS = [
-            "Q1.บัญชี HAM", "Q2.การแยกเก็บ", "Q3.จำกัดการเข้าถึง", "Q4.ตรวจสต็อก",
-            "Q5.คำสั่งยาครบถ้วน", "Q6.Standard Protocol", "Q7.การเตรียมยา", 
-            "Q8.การตรวจสอบซ้ำ", "Q9.ประเมินก่อนให้", "Q10.ติดตามหลังให้",
-            "Q11.รายงานเหตุการณ์", "Q12.ติดตามโดยหน.เวร", 
-            "Q13.Feedback โดยหน.เวร", "Q14.การประสานงาน"
-        ];
+    <!-- Dashboard Content -->
+    <div id="dashboard" class="hidden space-y-8 animate-fade-in">
 
-        const QUESTION_FULL_KEYWORD = [
-            "1. บัญชีรายการยา HAM", "2. การแยกเก็บ/ป้ายเตือน HAM", "3. จำกัดการเข้าถึง (เฉพาะพยาบาล)", 
-            "4. ตรวจสต็อกประจำเวร (ครบถ้วน/ถูกต้อง)", "5. คำสั่งยาครบถ้วน/ไม่กำกวม", "6. ใช้ Standard Protocol", 
-            "7. มาตรฐานการเตรียมยา/ฉลาก", "8. การตรวจสอบซ้ำ (Double Check)", "9. การประเมินก่อนให้ยา (Vital Signs)", 
-            "10. การติดตามหลังให้ยา (Labs/Vitals)", "11. การบันทึกรายงานอุบัติการณ์", "12. หน.เวร กำกับติดตามการบันทึก", 
-            "13. หน.เวร ให้ Feedback เมื่อพบปัญหา", "14. การประสานงานแพทย์/เภสัช"
-        ];
+      <!-- Key Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Stat 1 -->
+        <div
+          class="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 flex flex-col items-start justify-center transform hover:scale-[1.01] transition duration-300 group">
+          <div class="text-gray-400 font-light text-lg">ผู้ประเมินทั้งหมด</div>
+          <div id="total-respondents"
+            class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 group-hover:scale-110 transition-transform">
+            0
+          </div>
+          <div id="last-updated" class="text-accent text-sm mt-2 font-light"></div>
+        </div>
 
-        let myCharts = {};
+        <!-- Stat 2 -->
+        <div
+          class="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 flex flex-col items-center justify-center transform hover:scale-[1.01] transition duration-300 group">
+          <div class="text-gray-400 font-light text-lg">ความคลาดเคลื่อน</div>
+          <!-- <div id="overall-avg"
+            class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 mb-2 group-hover:scale-110 transition-transform">
+            0.00</div> -->
+        </div>
 
-        // Auto-run
-        window.onload = initDashboard;
+        <!-- Stat 3 -->
+        <div
+          class="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 flex flex-col items-center justify-center transform hover:scale-[1.01] transition duration-300 group">
+          <div class="text-gray-400 font-light text-lg">ปฏิบัติครบถ้วนตามแนวทาง</div>
+          <!-- <div id="overall-avg"
+            class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 mb-2 group-hover:scale-110 transition-transform">
+            0.00</div> -->
+        </div>
 
-        function initDashboard() {
-            document.getElementById('loading').classList.remove('hidden');
-            document.getElementById('dashboard').classList.add('hidden');
-            
-            // Artificial delay for smoother UX if net is too fast
-            setTimeout(loadAndProcessData, 500);
+        <!-- Stat 4 -->
+        <div
+          class="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 flex flex-col items-center justify-center transform hover:scale-[1.01] transition duration-300 group">
+          <div class="text-gray-400 font-light text-lg">คะแนนเฉลี่ยรวม (เต็ม 4)</div>
+          <div id="overall-avg"
+            class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 mb-2 group-hover:scale-110 transition-transform">
+            0.00
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Bar Chart (Takes 2 columns on large screens) -->
+        <div class="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 lg:col-span-2">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-semibold text-white flex items-center gap-2">
+              <span class="w-2 h-6 bg-accent rounded"></span>
+              คะแนนเฉลี่ยรายข้อ (14 ข้อ)
+            </h3>
+          </div>
+          <div class="relative h-[400px] w-full">
+            <canvas id="avgChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Radar Chart -->
+        <div class="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700">
+          <div class="flex items-center justify-center mb-6">
+            <h3 class="text-xl font-semibold text-white flex items-center gap-2">
+              <span class="w-2 h-6 bg-pink-500 rounded"></span>
+              สรุปภาพรวมรายด้าน
+            </h3>
+          </div>
+          <div class="relative h-[300px] lg:h-[400px] w-full flex items-center justify-center">
+            <canvas id="aspectChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed Breakdown Section -->
+      <div class="pt-8 border-t border-dark-700">
+        <h2 class="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+          <span class="bg-dark-700 p-2 rounded-lg">📋</span>
+          รายละเอียดรายข้อ
+          <span class="text-sm font-normal text-gray-500 ml-2">(การกระจายของคำตอบ)</span>
+        </h2>
+        <div id="questions-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <!-- Cards will be injected here via JS -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-16 text-center text-gray-600 text-sm py-8 border-t border-dark-800">
+      &copy; 2026 HAM Dashboard | Powered by Google Sheets & Tailwind CSS
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRtr1YbjpJwwlNBnB-a2kTz8rjJ8xYBpVj-WPxJ8gR1oy669Bw2CbG2sYTfX0efRm6mtkWpk-IXrF_9/pub?output=csv";
+
+    // Data Configuration
+    const QUESTION_COL_START_INDEX = 5;
+    const QUESTION_COUNT = 14;
+
+    // Labels
+    const QUESTION_LABELS = [
+      "Q1.บัญชี HAM", "Q2.การแยกเก็บ", "Q3.จำกัดการเข้าถึง", "Q4.ตรวจสต็อก",
+      "Q5.คำสั่งยาครบถ้วน", "Q6.Standard Protocol", "Q7.การเตรียมยา",
+      "Q8.การตรวจสอบซ้ำ", "Q9.ประเมินก่อนให้", "Q10.ติดตามหลังให้",
+      "Q11.รายงานเหตุการณ์", "Q12.ติดตามโดยหน.เวร",
+      "Q13.Feedback โดยหน.เวร", "Q14.การประสานงาน"
+    ];
+
+    const QUESTION_FULL_KEYWORD = [
+      "1. บัญชีรายการยา HAM", "2. การแยกเก็บ/ป้ายเตือน HAM", "3. จำกัดการเข้าถึง (เฉพาะพยาบาล)",
+      "4. ตรวจสต็อกประจำเวร (ครบถ้วน/ถูกต้อง)", "5. คำสั่งยาครบถ้วน/ไม่กำกวม", "6. ใช้ Standard Protocol",
+      "7. มาตรฐานการเตรียมยา/ฉลาก", "8. การตรวจสอบซ้ำ (Double Check)", "9. การประเมินก่อนให้ยา (Vital Signs)",
+      "10. การติดตามหลังให้ยา (Labs/Vitals)", "11. การบันทึกรายงานอุบัติการณ์", "12. หน.เวร กำกับติดตามการบันทึก",
+      "13. หน.เวร ให้ Feedback เมื่อพบปัญหา", "14. การประสานงานแพทย์/เภสัช"
+    ];
+
+    let myCharts = {};
+
+    // Auto-run
+    window.onload = function () {
+      initDashboard();
+      // Auto refresh every 5 minutes (300,000 ms)
+      setInterval(initDashboard, 300000);
+    };
+
+    function initDashboard() {
+      // Update Date
+      const now = new Date();
+      const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+      const dateStr = now.toLocaleDateString('th-TH', options);
+      const el = document.getElementById('last-updated');
+      if (el) el.innerHTML = `ข้อมูล ณ วันที่: ${dateStr}`;
+
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('dashboard').classList.add('hidden');
+
+      // Artificial delay for smoother UX if net is too fast
+      setTimeout(loadAndProcessData, 500);
+    }
+
+    function parseScore(val) {
+      if (!val) return 0;
+      const match = val.toString().match(/^(\d+)/);
+      return match ? parseInt(match[1]) : 0;
+    }
+
+    function loadAndProcessData() {
+      Papa.parse(GOOGLE_SHEET_CSV_URL, {
+        download: true,
+        header: false,
+        complete: function (results) {
+          const data = results.data;
+          if (!data || data.length < 2) {
+            alert("No data found");
+            return;
+          }
+          const rows = data.slice(1);
+          processRows(rows);
+
+          document.getElementById('loading').classList.add('hidden');
+          document.getElementById('dashboard').classList.remove('hidden');
+        },
+        error: function (err) {
+          console.error(err);
+          alert("Error loading data");
+          document.getElementById('loading').innerHTML = "<p class='text-red-500'>Error loading data. Please check console.</p>";
         }
+      });
+    }
 
-        function parseScore(val) {
-            if (!val) return 0;
-            const match = val.toString().match(/^(\d+)/);
-            return match ? parseInt(match[1]) : 0;
+    function processRows(rows) {
+      let questionStats = Array.from({ length: QUESTION_COUNT }, () => ({
+        sum: 0, count: 0, countsByScore: [0, 0, 0, 0, 0, 0]
+      }));
+
+      let respondentCount = 0;
+
+      rows.forEach(row => {
+        if (row.length < QUESTION_COL_START_INDEX + QUESTION_COUNT || !row[0]) return;
+        respondentCount++;
+
+        for (let i = 0; i < QUESTION_COUNT; i++) {
+          const score = parseScore(row[QUESTION_COL_START_INDEX + i]);
+          if (score >= 1 && score <= 5) {
+            questionStats[i].sum += score;
+            questionStats[i].count += 1;
+            questionStats[i].countsByScore[score]++;
+          }
         }
+      });
 
-        function loadAndProcessData() {
-            Papa.parse(GOOGLE_SHEET_CSV_URL, {
-                download: true,
-                header: false,
-                complete: function(results) {
-                    const data = results.data;
-                    if (!data || data.length < 2) {
-                        alert("No data found");
-                        return;
-                    }
-                    const rows = data.slice(1);
-                    processRows(rows);
-                    
-                    document.getElementById('loading').classList.add('hidden');
-                    document.getElementById('dashboard').classList.remove('hidden');
-                },
-                error: function(err) {
-                    console.error(err);
-                    alert("Error loading data");
-                    document.getElementById('loading').innerHTML = "<p class='text-red-500'>Error loading data. Please check console.</p>";
-                }
-            });
+      // Calculate Averages
+      const averages = questionStats.map(q => q.count > 0 ? (q.sum / q.count) : 0);
+
+      // Overall Average
+      const totalSum = questionStats.reduce((acc, q) => acc + q.sum, 0);
+      const totalResponses = questionStats.reduce((acc, q) => acc + q.count, 0);
+      const overallAvg = totalResponses > 0 ? (totalSum / totalResponses) : 0;
+
+      // Grouping Logic
+      const aspects = [
+        { name: "นโยบาย (Q1-3,6,11)", indices: [0, 1, 2, 5, 10] },
+        { name: "กระบวนการ (Q4-5,7-8,14)", indices: [3, 4, 6, 7, 13] },
+        { name: "ดูแลผู้ป่วย (Q9-10)", indices: [8, 9] },
+        { name: "การนิเทศ (Q12-13)", indices: [11, 12] }
+      ];
+
+      const aspectLabels = aspects.map(a => a.name);
+      const aspectAvgValues = aspects.map(aspect => {
+        let sum = 0, count = 0;
+        aspect.indices.forEach(idx => {
+          sum += questionStats[idx].sum;
+          count += questionStats[idx].count;
+        });
+        return count > 0 ? (sum / count) : 0;
+      });
+
+      // Update DOM Stats
+      animateValue("total-respondents", 0, respondentCount, 1000);
+      animateValue("overall-avg", 0, overallAvg, 1000, true);
+
+      // Render Charts
+      renderAvgChart(averages);
+      renderAspectChart(aspectLabels, aspectAvgValues);
+      renderIndividualCharts(questionStats);
+    }
+
+    function animateValue(id, start, end, duration, isFloat = false) {
+      const obj = document.getElementById(id);
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const val = progress * (end - start) + start;
+        obj.innerHTML = isFloat ? val.toFixed(2) : Math.floor(val);
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
         }
+      };
+      window.requestAnimationFrame(step);
+    }
 
-        function processRows(rows) {
-            let questionStats = Array.from({length: QUESTION_COUNT}, () => ({ 
-                sum: 0, count: 0, countsByScore: [0,0,0,0,0,0] 
-            }));
-            
-            let respondentCount = 0;
+    function renderAvgChart(averages) {
+      const ctx = document.getElementById('avgChart').getContext('2d');
+      if (myCharts['avg']) myCharts['avg'].destroy();
 
-            rows.forEach(row => {
-                if (row.length < QUESTION_COL_START_INDEX + QUESTION_COUNT || !row[0]) return;
-                respondentCount++;
+      const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+      gradient.addColorStop(0, 'rgba(0, 210, 255, 0.7)');
+      gradient.addColorStop(1, 'rgba(0, 210, 255, 0.1)');
 
-                for (let i = 0; i < QUESTION_COUNT; i++) {
-                    const score = parseScore(row[QUESTION_COL_START_INDEX + i]);
-                    if (score >= 1 && score <= 5) {
-                        questionStats[i].sum += score;
-                        questionStats[i].count += 1;
-                        questionStats[i].countsByScore[score]++;
-                    }
-                }
-            });
-
-            // Calculate Averages
-            const averages = questionStats.map(q => q.count > 0 ? (q.sum / q.count) : 0);
-            
-            // Overall Average
-            const totalSum = questionStats.reduce((acc, q) => acc + q.sum, 0);
-            const totalResponses = questionStats.reduce((acc, q) => acc + q.count, 0);
-            const overallAvg = totalResponses > 0 ? (totalSum / totalResponses) : 0;
-
-            // Grouping Logic
-            const aspects = [
-                { name: "นโยบาย (Q1-3,6,11)", indices: [0, 1, 2, 5, 10] },
-                { name: "กระบวนการ (Q4-5,7-8,14)", indices: [3, 4, 6, 7, 13] },
-                { name: "ดูแลผู้ป่วย (Q9-10)", indices: [8, 9] },
-                { name: "การนิเทศ (Q12-13)", indices: [11, 12] }
-            ];
-
-            const aspectLabels = aspects.map(a => a.name);
-            const aspectAvgValues = aspects.map(aspect => {
-                let sum = 0, count = 0;
-                aspect.indices.forEach(idx => {
-                    sum += questionStats[idx].sum;
-                    count += questionStats[idx].count;
-                });
-                return count > 0 ? (sum / count) : 0;
-            });
-
-            // Update DOM Stats
-            animateValue("total-respondents", 0, respondentCount, 1000);
-            animateValue("overall-avg", 0, overallAvg, 1000, true);
-            
-            // Render Charts
-            renderAvgChart(averages);
-            renderAspectChart(aspectLabels, aspectAvgValues);
-            renderIndividualCharts(questionStats);
+      myCharts['avg'] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: QUESTION_LABELS,
+          datasets: [{
+            label: 'คะแนนเฉลี่ย',
+            data: averages,
+            backgroundColor: gradient,
+            borderColor: '#00d2ff',
+            borderWidth: 1,
+            borderRadius: 6,
+            barThickness: 'flex',
+            maxBarThickness: 50
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 5,
+              grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+              ticks: { color: '#9ca3af', padding: 10 }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#d1d5db', maxRotation: 45, minRotation: 45, font: { size: 11 } }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(30, 30, 30, 0.95)',
+              titleColor: '#00d2ff',
+              bodyColor: '#fff',
+              borderColor: 'rgba(255,255,255,0.1)',
+              borderWidth: 1,
+              padding: 12,
+              cornerRadius: 8,
+              displayColors: false
+            }
+          }
         }
+      });
+    }
 
-        function animateValue(id, start, end, duration, isFloat = false) {
-            const obj = document.getElementById(id);
-            let startTimestamp = null;
-            const step = (timestamp) => {
-                if (!startTimestamp) startTimestamp = timestamp;
-                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                const val = progress * (end - start) + start;
-                obj.innerHTML = isFloat ? val.toFixed(2) : Math.floor(val);
-                if (progress < 1) {
-                    window.requestAnimationFrame(step);
-                }
-            };
-            window.requestAnimationFrame(step);
+    function renderAspectChart(labels, data) {
+      const ctx = document.getElementById('aspectChart').getContext('2d');
+      if (myCharts['aspect']) myCharts['aspect'].destroy();
+
+      myCharts['aspect'] = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'คะแนนเฉลี่ย',
+            data: data,
+            backgroundColor: 'rgba(236, 72, 153, 0.2)',
+            borderColor: '#ec4899', // pink-500
+            pointBackgroundColor: '#fff',
+            pointBorderColor: '#ec4899',
+            pointHoverBackgroundColor: '#ec4899',
+            borderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              angleLines: { color: 'rgba(255,255,255,0.1)' },
+              grid: { color: 'rgba(255,255,255,0.1)' },
+              pointLabels: { color: '#e5e7eb', font: { size: 12, family: 'Kanit' } },
+              suggestedMin: 0,
+              suggestedMax: 5,
+              ticks: { display: false, backdropColor: 'transparent' }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: { backgroundColor: 'rgba(30,30,30,0.9)' }
+          }
         }
+      });
+    }
 
-        function renderAvgChart(averages) {
-            const ctx = document.getElementById('avgChart').getContext('2d');
-            if (myCharts['avg']) myCharts['avg'].destroy();
+    function renderIndividualCharts(questionStats) {
+      const container = document.getElementById('questions-container');
+      container.innerHTML = '';
 
-            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(0, 210, 255, 0.7)');
-            gradient.addColorStop(1, 'rgba(0, 210, 255, 0.1)');
+      questionStats.forEach((stat, index) => {
+        const avgVal = stat.count > 0 ? (stat.sum / stat.count).toFixed(2) : "0.00";
+        const scores = stat.countsByScore.slice(1);
 
-            myCharts['avg'] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: QUESTION_LABELS,
-                    datasets: [{
-                        label: 'คะแนนเฉลี่ย',
-                        data: averages,
-                        backgroundColor: gradient,
-                        borderColor: '#00d2ff',
-                        borderWidth: 1,
-                        borderRadius: 6,
-                        barThickness: 'flex',
-                        maxBarThickness: 50
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 5,
-                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-                            ticks: { color: '#9ca3af', padding: 10 }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#d1d5db', maxRotation: 45, minRotation: 45, font: {size: 11} }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(30, 30, 30, 0.95)',
-                            titleColor: '#00d2ff',
-                            bodyColor: '#fff',
-                            borderColor: 'rgba(255,255,255,0.1)',
-                            borderWidth: 1,
-                            padding: 12,
-                            cornerRadius: 8,
-                            displayColors: false
-                        }
-                    }
-                }
-            });
-        }
+        // Color scale for 1-5
+        const barColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
 
-        function renderAspectChart(labels, data) {
-            const ctx = document.getElementById('aspectChart').getContext('2d');
-            if (myCharts['aspect']) myCharts['aspect'].destroy();
+        // Create Elements
+        const card = document.createElement('div');
+        card.className = "bg-dark-800 rounded-2xl p-5 shadow-lg border border-dark-700 hover:border-gray-500 transition-all duration-300 flex flex-col h-[280px]";
 
-            myCharts['aspect'] = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'คะแนนเฉลี่ย',
-                        data: data,
-                        backgroundColor: 'rgba(236, 72, 153, 0.2)',
-                        borderColor: '#ec4899', // pink-500
-                        pointBackgroundColor: '#fff',
-                        pointBorderColor: '#ec4899',
-                        pointHoverBackgroundColor: '#ec4899',
-                        borderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            angleLines: { color: 'rgba(255,255,255,0.1)' },
-                            grid: { color: 'rgba(255,255,255,0.1)' },
-                            pointLabels: { color: '#e5e7eb', font: { size: 12, family: 'Kanit' } },
-                            suggestedMin: 0,
-                            suggestedMax: 5,
-                            ticks: { display: false, backdropColor: 'transparent' }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { backgroundColor: 'rgba(30,30,30,0.9)' }
-                    }
-                }
-            });
-        }
+        // Header of card
+        const header = document.createElement('div');
+        header.className = "flex justify-between items-start mb-4 h-12";
 
-        function renderIndividualCharts(questionStats) {
-            const container = document.getElementById('questions-container');
-            container.innerHTML = '';
+        const title = document.createElement('h4');
+        title.className = "text-sm text-gray-200 font-medium line-clamp-2 leading-snug w-3/4";
+        title.title = QUESTION_FULL_KEYWORD[index]; // Tooltip on hover
+        title.textContent = QUESTION_FULL_KEYWORD[index];
 
-            questionStats.forEach((stat, index) => {
-                const avgVal = stat.count > 0 ? (stat.sum / stat.count).toFixed(2) : "0.00";
-                const scores = stat.countsByScore.slice(1);
-                
-                // Color scale for 1-5
-                const barColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
+        const badge = document.createElement('span');
+        badge.className = "text-xs font-bold px-2 py-1 bg-dark-900 rounded-md text-accent min-w-[3rem] text-center shadow-inner";
+        badge.textContent = avgVal;
 
-                // Create Elements
-                const card = document.createElement('div');
-                card.className = "bg-dark-800 rounded-2xl p-5 shadow-lg border border-dark-700 hover:border-gray-500 transition-all duration-300 flex flex-col h-[280px]";
-                
-                // Header of card
-                const header = document.createElement('div');
-                header.className = "flex justify-between items-start mb-4 h-12";
-                
-                const title = document.createElement('h4');
-                title.className = "text-sm text-gray-200 font-medium line-clamp-2 leading-snug w-3/4";
-                title.title = QUESTION_FULL_KEYWORD[index]; // Tooltip on hover
-                title.textContent = QUESTION_FULL_KEYWORD[index];
+        header.appendChild(title);
+        header.appendChild(badge);
+        card.appendChild(header);
 
-                const badge = document.createElement('span');
-                badge.className = "text-xs font-bold px-2 py-1 bg-dark-900 rounded-md text-accent min-w-[3rem] text-center shadow-inner";
-                badge.textContent = avgVal;
+        // Canvas Container
+        const canvasContainer = document.createElement('div');
+        canvasContainer.className = "flex-grow relative w-full min-h-[140px]";
 
-                header.appendChild(title);
-                header.appendChild(badge);
-                card.appendChild(header);
+        const canvas = document.createElement('canvas');
+        canvas.id = `qChart-${index}`;
 
-                // Canvas Container
-                const canvasContainer = document.createElement('div');
-                canvasContainer.className = "flex-grow relative w-full min-h-[140px]";
-                
-                const canvas = document.createElement('canvas');
-                canvas.id = `qChart-${index}`;
-                
-                canvasContainer.appendChild(canvas);
-                card.appendChild(canvasContainer);
+        canvasContainer.appendChild(canvas);
+        card.appendChild(canvasContainer);
 
-                // Footer
-                const footer = document.createElement('div');
-                footer.className = "text-xs text-gray-600 text-center mt-3 font-light";
-                footer.textContent = `ผู้ตอบ: ${stat.count} คน`;
-                card.appendChild(footer);
+        // Footer
+        const footer = document.createElement('div');
+        footer.className = "text-xs text-gray-600 text-center mt-3 font-light";
+        footer.textContent = `ผู้ตอบ: ${stat.count} คน`;
+        card.appendChild(footer);
 
-                // Append to grid
-                container.appendChild(card);
+        // Append to grid
+        container.appendChild(card);
 
-                // Init Chart
-                const ctx = document.getElementById(`qChart-${index}`).getContext('2d');
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['1', '2', '3', '4', '5'],
-                        datasets: [{
-                            data: scores,
-                            backgroundColor: barColors,
-                            borderRadius: 3,
-                            barPercentage: 0.6
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false }, tooltip: { enabled: true } },
-                        scales: {
-                            y: { display: false },
-                            x: { 
-                                grid: { display: false },
-                                ticks: { color: '#6b7280', font: {size: 10} } // Tailwind gray-500
-                            }
-                        },
-                        animation: { duration: 0 } // Performance optimization for many charts
-                    }
-                });
-            });
-        }
-    </script>
+        // Init Chart
+        const ctx = document.getElementById(`qChart-${index}`).getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['1', '2', '3', '4', '5'],
+            datasets: [{
+              data: scores,
+              backgroundColor: barColors,
+              borderRadius: 3,
+              barPercentage: 0.6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: true } },
+            scales: {
+              y: { display: false },
+              x: {
+                grid: { display: false },
+                ticks: { color: '#6b7280', font: { size: 10 } } // Tailwind gray-500
+              }
+            },
+            animation: { duration: 0 } // Performance optimization for many charts
+          }
+        });
+      });
+    }
+  </script>
 </body>
+
 </html>
