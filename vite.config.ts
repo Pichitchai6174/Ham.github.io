@@ -10,7 +10,7 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
   ],
-  base: "/",
+  base: "/Ham.github.io/",
   resolve: {
     alias: {
       "@": "/src",
