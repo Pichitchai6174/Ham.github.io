@@ -77,6 +77,7 @@ type DashboardStats = {
   domainAverages: DomainAverage[];
   columnWPercentages: CategoryPercentage[];
   columnXPercentages: CategoryPercentage[];
+  medicationErrorPercentages: CategoryPercentage[];
   positionGenderQuestionAverages: PositionGenderQuestionAverage[];
 };
 
@@ -303,18 +304,101 @@ export function useDashboardStats(data: SheetRow[]): DashboardStats {
       .sort((a, b) => b.count - a.count);
   };
 
+  const predefinedReasonChoices = [
+    "ขาดความรู้ความเข้าใจแนวทางการตรวจสอบบันทึกการจัดการยาที่ต้องเฝ้าระวังสูง",
+    "ขั้นตอนมีความซับซ้อน",
+    "ระบบสนับสนุนไม่เพียงพอ",
+    "ไม่มี",
+  ] as const;
+
+  const normalizeReasonValue = (value: unknown) => {
+    const normalized = value?.toString().trim() ?? "";
+
+    if (!normalized) {
+      return "ไม่ระบุ";
+    }
+
+    if (predefinedReasonChoices.includes(normalized as (typeof predefinedReasonChoices)[number])) {
+      return normalized;
+    }
+
+    return `อื่นๆ: ${normalized}`;
+  };
+
+  const predefinedContinuousManagementChoices = [
+    "ทบทวนแนวทางการตรวจสอบบันทึกการจัดการยาที่ต้องเฝ้าระวังสูง",
+    "จัดการนิเทศติดตามต่อเนื่อง",
+    "จัดให้มีการระบบพี่เลี้ยงการตรวจสอบบันทึกการจัดการยาที่ต้องเฝ้าระวังสูง",
+    "เพิ่มระบบสนับสนุน",
+  ] as const;
+
+  const normalizeContinuousManagementValue = (value: unknown) => {
+    const normalized = value?.toString().trim() ?? "";
+
+    if (!normalized) {
+      return "ไม่ระบุ";
+    }
+
+    if (
+      predefinedContinuousManagementChoices.includes(
+        normalized as (typeof predefinedContinuousManagementChoices)[number],
+      )
+    ) {
+      return normalized;
+    }
+
+    return "ไม่ระบุ";
+  };
+
+  const predefinedMedicationErrorChoices = [
+    "ให้ยาถูกชนิด",
+    "ให้ยาผู้ป่วยถูกคน",
+    "ให้ยาถูกขนาด",
+    "ให้ยาถูกทาง",
+    "ให้ยาถูกเวลา",
+    "บันทึกถูกต้อง",
+    "สิทธิ์ที่จะได้รับข้อมูลยาและสิทธิ์ในการปฏิเสธยา",
+    "ตรวจสอบประวัติการแพ้ยาและทำการประเมินถูกต้อง",
+    "ตรวจสอบปฏิกิริยาระหว่างกันของยาและการประเมินถูกต้อง",
+    "ให้ความรู้และข้อมูลยาถูกต้อง",
+    "ไม่เกิดความคลาดเคลื่อน",
+  ] as const;
+
+  const normalizeMedicationErrorValue = (value: unknown) => {
+    const normalized = value?.toString().trim() ?? "";
+
+    if (!normalized) {
+      return "ไม่ระบุ";
+    }
+
+    if (
+      predefinedMedicationErrorChoices.includes(
+        normalized as (typeof predefinedMedicationErrorChoices)[number],
+      )
+    ) {
+      return normalized;
+    }
+
+    return `อื่นๆ: ${normalized}`;
+  };
+
   const columnWValues = data.map((row) => {
-    const normalized = row["พบความคลาดเคลื่อน"]?.toString().trim();
-    return normalized && normalized.length > 0 ? normalized : "ไม่ระบุ";
+    return normalizeReasonValue(
+      row["สาเหตุการปฏิบัติไม่ครบหรือไม่ปฏิบัติตามแนวทางการตรวจสอบบันทึกการจัดการยาที่ต้องเฝ้าระวังสูง"],
+    );
   });
 
   const columnXValues = data.map((row) => {
-    const normalized = row["ความผิดพลาดในการจัดการยาที่พบ"]?.toString().trim();
-    return normalized && normalized.length > 0 ? normalized : "ไม่ระบุ";
+    return normalizeContinuousManagementValue(row["การบริหารจัดการต่อเนื่อง"]);
+  });
+
+  const medicationErrorValues = data.map((row) => {
+    return normalizeMedicationErrorValue(row["ความผิดพลาดในการจัดการยาที่พบ"]);
   });
 
   const columnWPercentages = calculateCategoryPercentage(columnWValues);
   const columnXPercentages = calculateCategoryPercentage(columnXValues);
+  const medicationErrorPercentages = calculateCategoryPercentage(medicationErrorValues);
 
   const positionGenderQuestionAverages: PositionGenderQuestionAverage[] = scoreColumnKeys.map((column, index) => {
     const initialSeriesValues = positionGenderSeries.reduce(
@@ -419,6 +503,7 @@ export function useDashboardStats(data: SheetRow[]): DashboardStats {
     domainAverages,
     columnWPercentages,
     columnXPercentages,
+    medicationErrorPercentages,
     positionGenderQuestionAverages,
   };
 }

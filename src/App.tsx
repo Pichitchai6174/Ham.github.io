@@ -74,6 +74,14 @@ const questionDisplayLabelMap: Partial<Record<number, string>> = {
   14: "การประสานงาน",
 }
 
+const customDomainLabelMap: Record<string, string> = {
+  domain1: "บันทึกมีความครบถ้วนตามเกณฑ์ (1-4)",
+  domain2: "บันทึกการจัดการยาถูกต้องต่อเนื่องทุกเวร (5-7)",
+  domain3: "บันทึกมีการตรวจสอบซ้ำอย่างอิสระ (8)",
+  domain4: " มีการเฝ้าระวังผู้ป่วยและเหตุการณ์ (9-11) ไม่พึงประสงค์",
+  domain5: "การกำกับดูแลและการพัฒนา (12-14) คุณภาพโดยหัวหน้าเวร",
+}
+
 function App() {
 
   const sheetId = "1126W-GvIoseqtxx1ycWAb826sxP97nqYFQbcVDJ6z70"
@@ -100,6 +108,7 @@ function App() {
     domainAverages,
     columnWPercentages,
     columnXPercentages,
+    medicationErrorPercentages,
     positionGenderQuestionAverages,
   } = useDashboardStats(data)
 
@@ -158,7 +167,7 @@ function App() {
     label.length > maxLength ? `${label.slice(0, maxLength)}...` : label
 
   const domainPercentChartData = domainAverages.map((item) => ({
-    label: item.label,
+    label: customDomainLabelMap[item.domainKey] ?? item.label,
     percent: item.percent,
     averageValue: item.averageValue,
   }))
@@ -175,6 +184,74 @@ function App() {
     percent: item.percent,
     count: item.count,
   }))
+
+  const medicationErrorStatRows = medicationErrorPercentages.map((item) => ({
+    label: item.label,
+    count: item.count,
+    percent: item.percent,
+  }))
+
+  const discrepancyGroupLevelStats = Object.values(
+    data
+      .filter((row) => {
+        const isFound = row["พบความคลาดเคลื่อน"]?.toString().trim() === "พบ"
+        const levelRaw = row["ระดับความคลาดเคลื่อน"]?.toString().trim() || ""
+        const normalizedLevel = levelRaw.toUpperCase()
+        const levelOrder = ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
+        const isOtherLevel = levelRaw.length > 0 && !levelOrder.includes(normalizedLevel)
+
+        return isFound || isOtherLevel
+      })
+      .reduce((acc, row) => {
+        const hamGroup = row["กลุ่มยาที่ต้องเฝ้าระวังสูง"]?.toString().trim() || "ไม่ระบุ"
+        const levelRaw = row["ระดับความคลาดเคลื่อน"]?.toString().trim() || "ไม่ระบุ"
+        const normalizedLevel = levelRaw.toUpperCase()
+        const levelOrder = ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
+        const isOtherLevel = !levelOrder.includes(normalizedLevel)
+        const level = isOtherLevel ? "อื่นๆ" : normalizedLevel
+        const key = `${hamGroup}__${level}__${isOtherLevel ? levelRaw : ""}`
+
+        if (!acc[key]) {
+          acc[key] = {
+            hamGroup,
+            level,
+            levelRaw,
+            isOtherLevel,
+            count: 0,
+          }
+        }
+
+        acc[key].count += 1
+        return acc
+      }, {} as Record<string, { hamGroup: string; level: string; levelRaw: string; isOtherLevel: boolean; count: number }>),
+  )
+
+  const discrepancyStatsTotal = discrepancyGroupLevelStats.reduce((sum, item) => sum + item.count, 0)
+
+  const discrepancyGroupLevelStatsWithPercent = discrepancyGroupLevelStats
+    .map((item) => ({
+      ...item,
+      percent: discrepancyStatsTotal > 0 ? Number(((item.count / discrepancyStatsTotal) * 100).toFixed(2)) : 0,
+    }))
+    .sort((a, b) => {
+      const levelOrder = ["A", "B", "C", "D", "E", "F", "G", "H", "I"]
+      const levelA = a.level.trim().toUpperCase()
+      const levelB = b.level.trim().toUpperCase()
+      const indexA = levelOrder.indexOf(levelA)
+      const indexB = levelOrder.indexOf(levelB)
+      const safeIndexA = a.isOtherLevel || indexA === -1 ? Number.MAX_SAFE_INTEGER : indexA
+      const safeIndexB = b.isOtherLevel || indexB === -1 ? Number.MAX_SAFE_INTEGER : indexB
+
+      if (safeIndexA !== safeIndexB) {
+        return safeIndexA - safeIndexB
+      }
+
+      if (b.count !== a.count) {
+        return b.count - a.count
+      }
+
+      return a.hamGroup.localeCompare(b.hamGroup, "th")
+    })
 
   return (
     <div className="bg-dark-900 text-gray-200 font-sans min-h-screen p-4 md:p-8">
@@ -266,25 +343,35 @@ function App() {
                         <TableHead>#</TableHead>
                         <TableHead>กลุ่มยา HAM</TableHead>
                         <TableHead className="text-center">ระดับ</TableHead>
-                        <TableHead>ความผิดพลาดในการจัดการยาที่พบ</TableHead>
+                        <TableHead className="text-center">จำนวนครั้ง</TableHead>
+                        <TableHead className="text-center">ร้อยละ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody className="[&_tr]:border-b-[#1f2937]">
-                      {data.map((row, index) => (
+                      {discrepancyGroupLevelStatsWithPercent.map((row, index) => (
                         <TableRow key={index} className="hover:bg-transparent [&_td]:text-gray-100 ">
                           <TableCell>{index + 1}</TableCell>
 
-                          <TableCell className="text-wrap break-word whitespace-normal">{row["กลุ่มยาที่ต้องเฝ้าระวังสูง"]}</TableCell>
+                          <TableCell className="text-wrap break-word whitespace-normal">{row.hamGroup}</TableCell>
 
                           <TableCell className="text-center">
-                            <Badge className={getLevelBadgeClass(row["ระดับความคลาดเคลื่อน"])}>
-                              {row["ระดับความคลาดเคลื่อน"]}
+                            <Badge className={getLevelBadgeClass(row.level)}>
+                              {row.level} {row.isOtherLevel && row.levelRaw && `(${row.levelRaw})`}
                             </Badge>
                           </TableCell>
 
-                          <TableCell>{row["ความผิดพลาดในการจัดการยาที่พบ"]}</TableCell>
+                          <TableCell className="text-center text-accent font-medium">{row.count}</TableCell>
+                          <TableCell className="text-center">{row.percent.toFixed(2)}%</TableCell>
                         </TableRow>
                       ))}
+
+                      {discrepancyGroupLevelStatsWithPercent.length === 0 && (
+                        <TableRow className="hover:bg-transparent [&_td]:text-gray-100 ">
+                          <TableCell colSpan={5} className="text-center text-gray-400 py-6">
+                            ไม่พบข้อมูลความคลาดเคลื่อน
+                          </TableCell>
+                        </TableRow>
+                      )}
 
                     </TableBody>
                   </Table>
@@ -487,26 +574,34 @@ function App() {
 
             </div>
 
-            {/* Col 2.5 */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-3 gap-6">
 
-              <div className="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700">
+              <div className="col-span-2 bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                     <span className="w-2 h-6 bg-accent rounded"></span>
-                    วิเคราะห์รายด้าน 5 ด้านหลัก
+                    การตรวจสอบการบันทึกการจัดการยาที่ต้องเฝ้าระวังสูง
                   </h3>
                 </div>
 
-                <ChartContainer config={domainPercentChartConfig} className="h-80 w-full">
+                <ChartContainer config={domainPercentChartConfig} className="h-104 w-full">
                   <BarChart data={domainPercentChartData} margin={{ top: 8, right: 12, left: 0, bottom: 20 }}>
                     <CartesianGrid vertical={false} stroke="#374151" />
                     <XAxis
                       dataKey="label"
-                      tick={{ fill: "#9CA3AF", fontSize: 11 }}
+                      tick={(props) => {
+                        const { x, y, payload } = props
+
+                        return (
+                          <foreignObject x={x - 40} y={y} width={100} height={80}>
+                            <div className="text-xs text-gray-400 text-center text-wrap break-word">
+                              {payload.value}
+                            </div>
+                          </foreignObject>
+                        )
+                      }}
                       interval={0}
-                      angle={-20}
-                      textAnchor="end"
+                      textAnchor="middle"
                       height={72}
                     />
                     <YAxis
@@ -528,7 +623,7 @@ function App() {
                         />
                       }
                     />
-                    <Bar dataKey="percent" fill="var(--color-percent)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="percent" fill="var(--color-percent)" radius={[2, 2, 0, 0]} />
                   </BarChart>
                 </ChartContainer>
               </div>
@@ -537,24 +632,72 @@ function App() {
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                     <span className="w-2 h-6 bg-accent rounded"></span>
-                    กราฟคอลัมน์ W (ร้อยละ)
+                    ความผิดพลาดในการจัดการยาที่พบ
                   </h3>
                 </div>
 
-                <ChartContainer config={columnWPercentChartConfig} className="h-80 w-full">
-                  <BarChart data={columnWPercentChartData} layout="vertical" margin={{ top: 8, right: 12, left: 10, bottom: 8 }}>
-                    <CartesianGrid horizontal={false} stroke="#374151" />
+                <div className="overflow-y-auto max-h-104">
+                  <Table className="overflow-hidden">
+                    <TableHeader className="[&_tr]:border-b-[#1f2937]">
+                      <TableRow className="hover:bg-transparent [&_th]:text-gray-100">
+                        <TableHead>รายการ</TableHead>
+                        <TableHead className="text-center">จำนวน</TableHead>
+                        <TableHead className="text-center">ร้อยละ</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="[&_tr]:border-b-[#1f2937]">
+                      {medicationErrorStatRows.map((row, index) => (
+                        <TableRow key={index} className="hover:bg-transparent [&_td]:text-gray-100">
+                          <TableCell className="whitespace-normal wrap-break-word text-sm">{row.label}</TableCell>
+                          <TableCell className="text-center text-accent font-medium">{row.count}</TableCell>
+                          <TableCell className="text-center">{row.percent.toFixed(2)}%</TableCell>
+                        </TableRow>
+                      ))}
+
+                      {medicationErrorStatRows.length === 0 && (
+                        <TableRow className="hover:bg-transparent [&_td]:text-gray-100">
+                          <TableCell colSpan={3} className="text-center text-gray-400 py-6">
+                            ไม่พบข้อมูล
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <div className="col-span-3 bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                    <span className="w-2 h-6 bg-accent rounded"></span>
+                    สาเหตุการปฏิบัติไม่ครบหรือไม่ปฏิบัติตามแนวทางการตรวจสอบบันทึกการจัดการยาที่ต้องเฝ้าระวังสูง
+                  </h3>
+                </div>
+
+                <ChartContainer config={columnWPercentChartConfig} className="h-104 w-full">
+                  <BarChart data={columnWPercentChartData} margin={{ top: 8, right: 12, left: 0, bottom: 56 }}>
+                    <CartesianGrid vertical={false} stroke="#374151" />
                     <XAxis
-                      type="number"
+                      dataKey="label"
+                      tick={(props) => {
+                        const { x, y, payload } = props
+
+                        return (
+                          <foreignObject x={x - 75} y={y + 6} width={150} height={80}>
+                            <div className="text-xs text-gray-400 text-center text-wrap break-word leading-tight">
+                              {payload.value}
+                            </div>
+                          </foreignObject>
+                        )
+                      }}
+                      interval={0}
+                      textAnchor="middle"
+                      height={74}
+                    />
+                    <YAxis
                       domain={[0, 100]}
                       tick={{ fill: "#9CA3AF", fontSize: 12 }}
                       tickFormatter={(value: number) => `${value}%`}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="label"
-                      tick={{ fill: "#9CA3AF", fontSize: 12 }}
-                      width={92}
                     />
                     <ChartTooltip
                       cursor={false}
@@ -571,33 +714,43 @@ function App() {
                         />
                       }
                     />
-                    <Bar dataKey="percent" fill="var(--color-percent)" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="percent" fill="var(--color-percent)" radius={[2, 2, 0, 0]} />
                   </BarChart>
                 </ChartContainer>
               </div>
 
-              <div className="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700">
+              <div className="col-span-3 bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                     <span className="w-2 h-6 bg-accent rounded"></span>
-                    กราฟคอลัมน์ X (ร้อยละ)
+                    การบริหารจัดการต่อเนื่อง
                   </h3>
                 </div>
 
-                <ChartContainer config={columnXPercentChartConfig} className="h-80 w-full">
-                  <BarChart data={columnXPercentChartData} layout="vertical" margin={{ top: 8, right: 12, left: 10, bottom: 8 }}>
-                    <CartesianGrid horizontal={false} stroke="#374151" />
+                <ChartContainer config={columnXPercentChartConfig} className="h-104 w-full">
+                  <BarChart data={columnXPercentChartData} margin={{ top: 8, right: 12, left: 0, bottom: 56 }}>
+                    <CartesianGrid vertical={false} stroke="#374151" />
                     <XAxis
-                      type="number"
+                      dataKey="fullLabel"
+                      tick={(props) => {
+                        const { x, y, payload } = props
+
+                        return (
+                          <foreignObject x={x - 75} y={y + 6} width={150} height={80}>
+                            <div className="text-xs text-gray-400 text-center text-wrap break-word leading-tight">
+                              {payload.value}
+                            </div>
+                          </foreignObject>
+                        )
+                      }}
+                      interval={0}
+                      textAnchor="middle"
+                      height={74}
+                    />
+                    <YAxis
                       domain={[0, 100]}
                       tick={{ fill: "#9CA3AF", fontSize: 12 }}
                       tickFormatter={(value: number) => `${value}%`}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="label"
-                      tick={{ fill: "#9CA3AF", fontSize: 11 }}
-                      width={140}
                     />
                     <ChartTooltip
                       cursor={false}
@@ -614,7 +767,7 @@ function App() {
                         />
                       }
                     />
-                    <Bar dataKey="percent" fill="var(--color-percent)" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="percent" fill="var(--color-percent)" radius={[2, 2, 0, 0]} />
                   </BarChart>
                 </ChartContainer>
               </div>
