@@ -1,6 +1,19 @@
 import StatsCard from "./components/stats-card"
 import { Badge } from "./components/ui/badge"
 import { ChartContainer, type ChartConfig, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "./components/ui/chart"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from "./components/ui/sidebar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./components/ui/table"
 import { useDashboardData } from "./hooks/use-dashboard-data"
 import { positionGenderSeries, useDashboardStats } from "./hooks/use-dashboard-stats"
@@ -253,12 +266,46 @@ function App() {
       return a.hamGroup.localeCompare(b.hamGroup, "th")
     })
 
+  const navigationItems = [
+    { href: "#overview", label: "สรุปภาพรวม" },
+    { href: "#discrepancy-and-team", label: "ความคลาดเคลื่อนและบุคลากร" },
+    { href: "#question-scores", label: "คะแนนเฉลี่ยรายด้าน" },
+    { href: "#domain-audit", label: "การตรวจสอบการบันทึก" },
+    { href: "#incomplete-cause", label: "สาเหตุปฏิบัติไม่ครบ" },
+    { href: "#continuity", label: "การบริหารจัดการต่อเนื่อง" },
+    { href: "#position-comparison", label: "เปรียบเทียบรายตำแหน่ง" },
+  ]
+
   return (
-    <div className="bg-dark-900 text-gray-200 font-sans min-h-screen p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+    <SidebarProvider defaultOpen>
+      <Sidebar className="border-r border-dark-700 **:data-[sidebar=sidebar]:bg-dark-800 **:data-[sidebar=sidebar]:text-gray-200">
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-gray-400">เมนู</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {navigationItems.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild>
+                      <a href={item.href}>{item.label}</a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
+
+      <SidebarInset className="bg-transparent">
+        <div className="bg-dark-900 text-gray-200 font-sans min-h-screen p-4 md:p-8">
+          <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-gray-800 pb-6">
 
-          <div>
+          <div className="w-full md:w-auto">
+            <div className="mb-3 md:hidden">
+              <SidebarTrigger className="text-gray-200 hover:bg-dark-700" />
+            </div>
             <h1 className="text-3xl md:text-4xl font-bold text-white flex items-center gap-3">
               HAM Dashboard
             </h1>
@@ -299,7 +346,7 @@ function App() {
           <div className="space-y-6 animate-fade-in">
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div id="overview" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 scroll-mt-6">
 
               <StatsCard title="ผู้ประเมินทั้งหมด" value={data.length} dateText={evaluatorDateText} />
 
@@ -324,7 +371,7 @@ function App() {
             </div>
 
             {/* Col 1 รายละเอียดความคลาดเคลื่อนและกลุ่มยา HAM, อัตราการปฏิบัติครบถ้วน / ข้อมูลบุคลากร*/}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div id="discrepancy-and-team" className="grid grid-cols-1 lg:grid-cols-3 gap-6 scroll-mt-6">
 
               {/* รายละเอียดความคลาดเคลื่อนและกลุ่มยา HAM */}
               <div className="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 max-h-153.5 lg:col-span-2">
@@ -506,7 +553,7 @@ function App() {
             </div>
 
             {/* Col 2 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div id="question-scores" className="grid grid-cols-1 lg:grid-cols-2 gap-6 scroll-mt-6">
 
               <div className="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700">
                 <div className="flex items-center justify-between mb-6">
@@ -576,7 +623,7 @@ function App() {
 
             <div className="grid grid-cols-3 gap-6">
 
-              <div className="col-span-2 bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700">
+              <div id="domain-audit" className="col-span-2 bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 scroll-mt-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                     <span className="w-2 h-6 bg-accent rounded"></span>
@@ -666,7 +713,7 @@ function App() {
                 </div>
               </div>
 
-              <div className="col-span-3 bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700">
+              <div id="incomplete-cause" className="col-span-3 bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 scroll-mt-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                     <span className="w-2 h-6 bg-accent rounded"></span>
@@ -719,7 +766,7 @@ function App() {
                 </ChartContainer>
               </div>
 
-              <div className="col-span-3 bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700">
+              <div id="continuity" className="col-span-3 bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 scroll-mt-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                     <span className="w-2 h-6 bg-accent rounded"></span>
@@ -775,7 +822,7 @@ function App() {
             </div>
 
             {/* Col 3 */}
-            <div className="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700">
+            <div id="position-comparison" className="bg-dark-800 rounded-2xl p-6 shadow-lg border border-dark-700 scroll-mt-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                   <span className="w-2 h-6 bg-accent rounded"></span>
@@ -833,8 +880,10 @@ function App() {
           {lastUpdated ? ` | อัปเดตล่าสุด: ${lastUpdated}` : ""}
         </p>
 
-      </div>
-    </div>
+          </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
 
